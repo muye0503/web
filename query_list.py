@@ -9,12 +9,14 @@ with sync_playwright() as p:
     context = browser.new_context(storage_state="storage_state.json")
     page = context.new_page()
 
-    page.goto("https://register.ccopyright.com.cn/account.html?current=soft_register")
-    page.wait_for_load_state("networkidle")
+    page.goto("https://register.ccopyright.com.cn/account.html?current=soft_register",
+              timeout=60000, wait_until="domcontentloaded")
+    page.wait_for_timeout(3000)
 
-    # 从localStorage获取token
-    token = page.evaluate("localStorage.getItem('authorization_token')")
-    key = page.evaluate("localStorage.getItem('authorization_key')")
+    # 从webUserInfo中取token
+    user_info = json.loads(page.evaluate("localStorage.getItem('webUserInfo')"))
+    token = user_info["authorization_token"]
+    key = user_info["authorization_key"]
 
     response = page.request.get(API, params={
         "keyWord": "",
