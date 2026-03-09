@@ -8,7 +8,9 @@ USERNAME = "<your_username>"
 PASSWORD = "<your_password>"
 KEEPALIVE_INTERVAL = 1800  # 30分钟
 STORAGE_FILE = "storage_state.json"
-USER_ID = "830815867913814016"
+async def get_user_id(page):
+    user_info = json.loads(await page.evaluate("localStorage.getItem('webUserInfo')"))
+    return user_info["id"]
 
 state = {"logged_in": False, "browser": None, "context": None}
 
@@ -107,13 +109,14 @@ async def query(status: str = "FILL", page_num: int = 1, page_size: int = 10):
     user_info = json.loads(await page.evaluate("localStorage.getItem('webUserInfo')"))
     token = user_info["authorization_token"]
     key = user_info["authorization_key"]
+    user_id = user_info["id"]
     await page.close()
 
-    api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusList/{USER_ID}"
+    api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusList/{user_id}"
     page = await state["context"].new_page()
     response = await page.request.get(api, params={
         "keyWord": "", "applyDate": "ALL", "status": status,
-        "applyType": "", "createUser": USER_ID,
+        "applyType": "", "createUser": user_id,
         "pageNum": str(page_num), "pageSize": str(page_size)
     }, headers={
         "authorization": f"Bearer {token}",
