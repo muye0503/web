@@ -5,6 +5,7 @@ if sys.platform == "win32":
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 from playwright.async_api import async_playwright
 import asyncio
 import json
@@ -64,6 +65,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/")
+async def index():
+    return FileResponse("index.html")
 
 
 @app.post("/login")

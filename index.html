@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>版权注册管理</title>
+  <style>
+    body { font-family: sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    button { margin: 5px; padding: 8px 16px; cursor: pointer; }
+    #status { margin: 10px 0; font-weight: bold; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+    th { background: #f5f5f5; }
+    select { padding: 6px; margin: 5px; }
+  </style>
+</head>
+<body>
+  <h2>版权注册管理</h2>
+
+  <div>
+    <button onclick="checkStatus()">检查登录状态</button>
+    <button onclick="doLogin()">触发登录</button>
+    <div id="status"></div>
+  </div>
+
+  <div style="margin-top:20px">
+    <select id="queryStatus">
+      <option value="ALL">全部</option>
+      <option value="FILL" selected>待提交</option>
+      <option value="AUDIT">审核中</option>
+      <option value="ADMIT">已受理</option>
+      <option value="MODIFY">需修改</option>
+      <option value="DONE">已完成</option>
+    </select>
+    <button onclick="queryList()">查询列表</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    const API = "http://127.0.0.1:8000";
+
+    async function checkStatus() {
+      const res = await fetch(`${API}/status`);
+      const data = await res.json();
+      document.getElementById("status").textContent =
+        data.logged_in ? "✅ 已登录" : "❌ 未登录";
+    }
+
+    async function doLogin() {
+      document.getElementById("status").textContent = "正在触发登录，请在弹出的浏览器中完成验证码...";
+      const res = await fetch(`${API}/login`, { method: "POST" });
+      const data = await res.json();
+      document.getElementById("status").textContent = data.message;
+    }
+
+    async function queryList() {
+      const status = document.getElementById("queryStatus").value;
+      const res = await fetch(`${API}/query?status=${status}`);
+      const data = await res.json();
+      const list = data?.data?.list || [];
+      const total = data?.data?.paging?.total || 0;
+
+      let html = `<p>共 ${total} 条</p><table>
+        <tr><th>软件名</th><th>申请人</th><th>状态</th></tr>`;
+      for (const item of list) {
+        html += `<tr>
+          <td>${item.softName || "-"}</td>
+          <td>${item.applyPeople || "-"}</td>
+          <td>${item.status || "-"}</td>
+        </tr>`;
+      }
+      html += "</table>";
+      document.getElementById("result").innerHTML = html;
+    }
+  </script>
+</body>
+</html>
