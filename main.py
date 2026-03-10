@@ -9,10 +9,19 @@ from fastapi.responses import FileResponse
 from playwright.async_api import async_playwright
 import asyncio
 import json
+import logging
+from datetime import datetime
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S"
+)
+log = logging.getLogger(__name__)
 
 USERNAME = "<your_username>"
 PASSWORD = "<your_password>"
-KEEPALIVE_INTERVAL = 1800  # 30分钟
+KEEPALIVE_INTERVAL = 300  # 先用5分钟测试，确认session不过期后再调大
 STORAGE_FILE = "storage_state.json"
 async def get_user_id(page):
     user_info = json.loads(await page.evaluate("localStorage.getItem('webUserInfo')"))
@@ -39,12 +48,13 @@ async def is_logged_in():
 async def keepalive_loop():
     while True:
         await asyncio.sleep(KEEPALIVE_INTERVAL)
+        log.info(f"保活检查（间隔{KEEPALIVE_INTERVAL}秒）...")
         if state["context"] and await is_logged_in():
             await state["context"].storage_state(path=STORAGE_FILE)
-            print("保活成功")
+            log.info("保活成功，session有效")
         else:
             state["logged_in"] = False
-            print("session过期，请重新登录")
+            log.warning("session已过期，请重新登录")
 
 
 @asynccontextmanager
@@ -54,8 +64,10 @@ async def lifespan(app: FastAPI):
     try:
         state["context"] = await state["browser"].new_context(storage_state=STORAGE_FILE)
         state["logged_in"] = await is_logged_in()
+        log.info(f"启动完成，登录状态：{'已登录' if state['logged_in'] else '未登录'}")
     except Exception:
         state["context"] = await state["browser"].new_context()
+        log.warning("storage_state.json 不存在或无效，需要先登录")
 
     task = asyncio.create_task(keepalive_loop())
     yield
