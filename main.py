@@ -19,8 +19,11 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-USERNAME = "<your_username>"
-PASSWORD = "<your_password>"
+from dotenv import load_dotenv
+import os
+load_dotenv()
+USERNAME = os.getenv("USERNAME")
+PASSWORD = os.getenv("PASSWORD")
 KEEPALIVE_INTERVAL = 300  # 先用5分钟测试，确认session不过期后再调大
 STORAGE_FILE = "storage_state.json"
 async def get_user_id(page):
