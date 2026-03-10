@@ -41,10 +41,13 @@ async def is_logged_in():
             )
         except Exception:
             pass
+        current_url = page.url
         raw = await page.evaluate("localStorage.getItem('webUserInfo')")
         await page.close()
+        log.info(f"is_logged_in: url={current_url}, webUserInfo={'有' if raw else '无'}")
         return raw is not None
-    except Exception:
+    except Exception as e:
+        log.warning(f"is_logged_in异常：{e}")
         return False
 
 
