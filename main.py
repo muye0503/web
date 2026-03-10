@@ -156,7 +156,14 @@ async def query(status: str = "FILL", page_num: int = 1, page_size: int = 10):
         "https://register.ccopyright.com.cn/account.html?current=soft_register",
         timeout=60000, wait_until="domcontentloaded"
     )
-    await page.wait_for_timeout(2000)
+    # 等待Vue应用初始化并写入webUserInfo，最多等10秒
+    try:
+        await page.wait_for_function(
+            "localStorage.getItem('webUserInfo') !== null",
+            timeout=10000
+        )
+    except Exception:
+        log.warning("等待webUserInfo超时")
 
     raw = await page.evaluate("localStorage.getItem('webUserInfo')")
     log.info(f"webUserInfo: {raw[:100] if raw else 'None'}")
