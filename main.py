@@ -52,12 +52,38 @@ async def keepalive_loop():
     while True:
         await asyncio.sleep(KEEPALIVE_INTERVAL)
         log.info(f"保活检查（间隔{KEEPALIVE_INTERVAL}秒）...")
-        if state["context"] and await is_logged_in():
+        if not state["context"]:
+            continue
+        try:
+            page = await state["context"].new_page()
+            await page.goto(
+                "https://register.ccopyright.com.cn/account.html?current=soft_register",
+                timeout=60000, wait_until="domcontentloaded"
+            )
+            await page.wait_for_timeout(2000)
+            raw = await page.evaluate("localStorage.getItem('webUserInfo')")
+            if not raw:
+                raise Exception("webUserInfo为空")
+            user_info = json.loads(raw)
+            token = user_info["authorization_token"]
+            key = user_info["authorization_key"]
+            user_id = user_info["id"]
+
+            # 主动调用API续期session
+            api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusSummary/{user_id}"
+            await page.request.get(api, headers={
+                "authorization": f"Bearer {token}",
+                "authorization_key": key,
+                "authorization_token": token,
+                "device": "pc"
+            })
+            await page.close()
             await state["context"].storage_state(path=STORAGE_FILE)
+            state["logged_in"] = True
             log.info("保活成功，session有效")
-        else:
+        except Exception as e:
             state["logged_in"] = False
-            log.warning("session已过期，请重新登录")
+            log.warning(f"session已过期：{e}，请重新登录")
 
 
 @asynccontextmanager
@@ -132,7 +158,13 @@ async def query(status: str = "FILL", page_num: int = 1, page_size: int = 10):
     )
     await page.wait_for_timeout(2000)
 
-    user_info = json.loads(await page.evaluate("localStorage.getItem('webUserInfo')"))
+    raw = await page.evaluate("localStorage.getItem('webUserInfo')")
+    await page.close()
+    if not raw:
+        state["logged_in"] = False
+        return {"error": "session已过期，请重新登录"}
+
+    user_info = json.loads(raw)
     token = user_info["authorization_token"]
     key = user_info["authorization_key"]
     user_id = user_info["id"]
