@@ -10,6 +10,7 @@ from playwright.async_api import async_playwright
 import asyncio
 import json
 import logging
+import random
 from datetime import datetime
 
 logging.basicConfig(
@@ -50,8 +51,9 @@ async def is_logged_in():
 
 async def keepalive_loop():
     while True:
-        await asyncio.sleep(KEEPALIVE_INTERVAL)
-        log.info(f"保活检查（间隔{KEEPALIVE_INTERVAL}秒）...")
+        interval = random.randint(60, 300)  # 1-5分钟随机
+        log.info(f"下次保活间隔：{interval}秒")
+        await asyncio.sleep(interval)
         if not state["context"]:
             continue
         try:
