@@ -144,8 +144,9 @@ async def login():
 @app.get("/status")
 async def status():
     """查询当前登录状态"""
-    logged_in = state["logged_in"]
-    return {"logged_in": logged_in}
+    if state["context"]:
+        state["logged_in"] = await is_logged_in()
+    return {"logged_in": state["logged_in"]}
 
 
 @app.get("/query")
