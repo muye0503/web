@@ -4,14 +4,14 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from contextlib import asynccontextmanager
+from dotenv import load_dotenv
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from playwright.async_api import async_playwright
-import asyncio
 import json
 import logging
+import os
 import random
-from datetime import datetime
 
 logging.basicConfig(
     level=logging.INFO,
@@ -20,16 +20,10 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-from dotenv import load_dotenv
-import os
 load_dotenv()
 USERNAME = os.getenv("APP_USERNAME")
 PASSWORD = os.getenv("APP_PASSWORD")
-KEEPALIVE_INTERVAL = 300  # 先用5分钟测试，确认session不过期后再调大
 STORAGE_FILE = "storage_state.json"
-async def get_user_id(page):
-    user_info = json.loads(await page.evaluate("localStorage.getItem('webUserInfo')"))
-    return user_info["id"]
 
 state = {"logged_in": False, "browser": None, "context": None}
 
@@ -41,10 +35,15 @@ async def is_logged_in():
             "https://register.ccopyright.com.cn/account.html?current=soft_register",
             timeout=60000, wait_until="domcontentloaded"
         )
-        await page.wait_for_timeout(2000)
-        result = "login" not in page.url
+        try:
+            await page.wait_for_function(
+                "localStorage.getItem('webUserInfo') !== null", timeout=10000
+            )
+        except Exception:
+            pass
+        raw = await page.evaluate("localStorage.getItem('webUserInfo')")
         await page.close()
-        return result
+        return raw is not None
     except Exception:
         return False
 
@@ -73,13 +72,16 @@ async def keepalive_loop():
 
             # 主动调用API续期session
             api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusSummary/{user_id}"
-            await page.request.get(api, headers={
+            resp = await page.request.get(api, headers={
                 "authorization": f"Bearer {token}",
                 "authorization_key": key,
                 "authorization_token": token,
                 "device": "pc"
             })
+            result = await resp.json()
             await page.close()
+            if result.get("returnCode") != "SUCCESS":
+                raise Exception(f"API返回：{result.get('msg')}")
             await state["context"].storage_state(path=STORAGE_FILE)
             state["logged_in"] = True
             log.info("保活成功，session有效")
@@ -177,7 +179,6 @@ async def query(status: str = "FILL", page_num: int = 1, page_size: int = 10):
     token = user_info["authorization_token"]
     key = user_info["authorization_key"]
     user_id = user_info["id"]
-    await page.close()
 
     api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusList/{user_id}"
     page = await state["context"].new_page()
