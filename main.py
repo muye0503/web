@@ -159,6 +159,7 @@ async def query(status: str = "FILL", page_num: int = 1, page_size: int = 10):
     await page.wait_for_timeout(2000)
 
     raw = await page.evaluate("localStorage.getItem('webUserInfo')")
+    log.info(f"webUserInfo: {raw[:100] if raw else 'None'}")
     await page.close()
     if not raw:
         state["logged_in"] = False
