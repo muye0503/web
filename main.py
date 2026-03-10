@@ -45,7 +45,10 @@ async def is_logged_in():
         raw = await page.evaluate("localStorage.getItem('webUserInfo')")
         await page.close()
         log.info(f"is_logged_in: url={current_url}, webUserInfo={'有' if raw else '无'}")
-        return raw is not None
+        # URL跳转到login说明session已过期
+        if "login" in current_url or not raw:
+            return False
+        return True
     except Exception as e:
         log.warning(f"is_logged_in异常：{e}")
         return False
