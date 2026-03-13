@@ -65,7 +65,12 @@ def migrate_server(s):
     if addr == 'fakeip':              return {'type': 'fakeip', 'tag': tag}
     if addr.startswith('rcode://'):   return {'type': 'rcode', 'tag': tag, 'rcode': addr[len('rcode://'):]}
     if addr.startswith('tls://'):     return {**base, 'type': 'tls',   'server': addr[len('tls://'):]}
-    if addr.startswith('h3://'):      return {**base, 'type': 'h3',    'server_url': addr}
+    if addr.startswith('h3://'):
+        hp = addr[len('h3://'):]
+        sl = hp.find('/')
+        h3 = {**base, 'type': 'h3', 'server': hp[:sl] if sl != -1 else hp}
+        if sl != -1: h3['path'] = hp[sl:]
+        return h3
     if addr.startswith('https://'):   return {**base, 'type': 'https', 'server_url': addr}
     return {**base, 'type': 'udp', 'server': addr}
 

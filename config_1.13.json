@@ -15,9 +15,10 @@
       {
         "type": "h3",
         "tag": "dns_direct",
-        "server_url": "h3://dns.alidns.com/dns-query",
         "detour": "DIRECT",
-        "domain_resolver": "dns_resolver"
+        "domain_resolver": "dns_resolver",
+        "server": "dns.alidns.com",
+        "path": "/dns-query"
       },
       {
         "type": "fakeip",
