@@ -11565,7 +11565,8 @@
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs",
         "download_detour": "🔰 节点选择"
       }
-    ]
+    ],
+    "default_domain_resolver": "dns_resolver"
   },
   "experimental": {
     "cache_file": {

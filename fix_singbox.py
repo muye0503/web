@@ -39,6 +39,7 @@ for rule in cfg['route']['rules']:
     else:
         new_route_rules.append(rule)
 cfg['route']['rules'] = new_route_rules
+cfg['route']['default_domain_resolver'] = 'dns_resolver'
 
 # 4. DNS rules: geosite -> rule_set, dns_block server -> action:reject
 new_dns_rules = []
