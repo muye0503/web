@@ -43,6 +43,8 @@ cfg['route']['rules'] = new_route_rules
 # 4. DNS rules: geosite -> rule_set, dns_block server -> action:reject
 new_dns_rules = []
 for rule in cfg['dns']['rules']:
+    if 'outbound' in rule:  # deprecated outbound dns rule item, drop it
+        continue
     if 'geosite' in rule:
         r = {k: v for k, v in rule.items() if k != 'geosite'}
         r['rule_set'] = [f'geosite-{g}' for g in rule['geosite']]
