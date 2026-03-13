@@ -62,7 +62,7 @@ def migrate_server(s):
     addr = s.get('address', '')
     tag = s.get('tag', '')
     base = {'tag': tag}
-    if s.get('detour'):           base['detour'] = s['detour']
+    # detour is not supported in new DNS server format (uses dialer, not outbound tag)
     if s.get('address_resolver'): base['domain_resolver'] = s['address_resolver']
 
     if addr == 'fakeip':              return {'type': 'fakeip', 'tag': tag}
