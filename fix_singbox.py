@@ -1,0 +1,90 @@
+#!/usr/bin/env python3
+"""Fix sing-box config for 1.13.2 compatibility.
+Usage: python3 fix_singbox.py input.json output.json
+"""
+import json, sys
+
+src, dst = sys.argv[1], sys.argv[2]
+with open(src) as f:
+    cfg = json.load(f)
+
+# 1. Inbounds: remove sniff fields, fix tun inet4_address -> address
+has_sniff = False
+for ib in cfg.get('inbounds', []):
+    if ib.pop('sniff', None):
+        has_sniff = True
+    ib.pop('sniff_timeout', None)
+    ib.pop('domain_strategy', None)
+    if ib.get('type') == 'tun':
+        for old in ('inet4_address', 'inet6_address'):
+            if old in ib:
+                val = ib.pop(old)
+                lst = ib.setdefault('address', [])
+                (lst.extend if isinstance(val, list) else lst.append)(val)
+
+# 2. Remove deprecated block/dns special outbounds
+cfg['outbounds'] = [o for o in cfg['outbounds'] if o.get('type') not in ('block', 'dns')]
+
+# 3. Route rules: dns-out -> hijack-dns, geoip:cn -> rule_set, add sniff
+new_route_rules = []
+if has_sniff:
+    new_route_rules.append({"action": "sniff"})
+for rule in cfg['route']['rules']:
+    if rule.get('outbound') == 'dns-out' and rule.get('protocol') == 'dns':
+        new_route_rules.append({"protocol": "dns", "action": "hijack-dns"})
+    elif rule.get('geoip') == 'cn':
+        r = {k: v for k, v in rule.items() if k != 'geoip'}
+        r['rule_set'] = ['geoip-cn']
+        new_route_rules.append(r)
+    else:
+        new_route_rules.append(rule)
+cfg['route']['rules'] = new_route_rules
+
+# 4. DNS rules: geosite -> rule_set, dns_block server -> action:reject
+new_dns_rules = []
+for rule in cfg['dns']['rules']:
+    if 'geosite' in rule:
+        r = {k: v for k, v in rule.items() if k != 'geosite'}
+        r['rule_set'] = [f'geosite-{g}' for g in rule['geosite']]
+        if r.get('server') == 'dns_block':
+            r.pop('server'); r.pop('disable_cache', None); r['action'] = 'reject'
+        new_dns_rules.append(r)
+    else:
+        new_dns_rules.append(rule)
+cfg['dns']['rules'] = new_dns_rules
+
+# 5. DNS servers: old address format -> new typed format
+#    address_resolver -> domain_resolver, http3 -> h3
+def migrate_server(s):
+    addr = s.get('address', '')
+    tag = s.get('tag', '')
+    base = {'tag': tag}
+    if s.get('detour'):           base['detour'] = s['detour']
+    if s.get('address_resolver'): base['domain_resolver'] = s['address_resolver']
+
+    if addr == 'fakeip':              return {'type': 'fakeip', 'tag': tag}
+    if addr.startswith('rcode://'):   return {'type': 'rcode', 'tag': tag, 'rcode': addr[len('rcode://'):]}
+    if addr.startswith('tls://'):     return {**base, 'type': 'tls',   'server': addr[len('tls://'):]}
+    if addr.startswith('h3://'):      return {**base, 'type': 'h3',    'server_url': addr}
+    if addr.startswith('https://'):   return {**base, 'type': 'https', 'server_url': addr}
+    return {**base, 'type': 'udp', 'server': addr}
+
+cfg['dns']['servers'] = [migrate_server(s) for s in cfg['dns']['servers']]
+
+# 6. rule_set entries for geoip/geosite
+used = set()
+for rule in cfg['route']['rules']: used.update(rule.get('rule_set', []))
+for rule in cfg['dns']['rules']:   used.update(rule.get('rule_set', []))
+
+cfg['route']['rule_set'] = []
+for rs in sorted(used):
+    repo = 'sing-geoip' if rs.startswith('geoip-') else 'sing-geosite'
+    cfg['route']['rule_set'].append({
+        "tag": rs, "type": "remote", "format": "binary",
+        "url": f"https://raw.githubusercontent.com/SagerNet/{repo}/rule-set/{rs}.srs",
+        "download_detour": "🔰 节点选择"
+    })
+
+with open(dst, 'w', encoding='utf-8') as f:
+    json.dump(cfg, f, ensure_ascii=False, indent=2)
+print(f"Written to {dst}")
