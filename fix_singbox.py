@@ -71,6 +71,14 @@ def migrate_server(s):
 
 cfg['dns']['servers'] = [migrate_server(s) for s in cfg['dns']['servers']]
 
+# 5b. Move dns.fakeip range config into the fakeip server entry, remove top-level dns.fakeip
+fakeip_cfg = cfg['dns'].pop('fakeip', {})
+for s in cfg['dns']['servers']:
+    if s.get('type') == 'fakeip':
+        if fakeip_cfg.get('inet4_range'): s['inet4_range'] = fakeip_cfg['inet4_range']
+        if fakeip_cfg.get('inet6_range'): s['inet6_range'] = fakeip_cfg['inet6_range']
+        break
+
 # 6. rule_set entries for geoip/geosite
 used = set()
 for rule in cfg['route']['rules']: used.update(rule.get('rule_set', []))
