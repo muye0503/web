@@ -30,11 +30,6 @@
         "tag": "dns_resolver",
         "server": "223.5.5.5",
         "detour": "DIRECT"
-      },
-      {
-        "type": "rcode",
-        "tag": "block",
-        "rcode": "success"
       }
     ],
     "rules": [

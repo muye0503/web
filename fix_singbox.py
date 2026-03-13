@@ -63,7 +63,7 @@ def migrate_server(s):
     if s.get('address_resolver'): base['domain_resolver'] = s['address_resolver']
 
     if addr == 'fakeip':              return {'type': 'fakeip', 'tag': tag}
-    if addr.startswith('rcode://'):   return {'type': 'rcode', 'tag': tag, 'rcode': addr[len('rcode://'):]}
+    if addr.startswith('rcode://'):   return None  # removed, use action:reject in dns rules instead
     if addr.startswith('tls://'):     return {**base, 'type': 'tls',   'server': addr[len('tls://'):]}
     if addr.startswith('h3://'):
         hp = addr[len('h3://'):]
@@ -74,7 +74,12 @@ def migrate_server(s):
     if addr.startswith('https://'):   return {**base, 'type': 'https', 'server_url': addr}
     return {**base, 'type': 'udp', 'server': addr}
 
-cfg['dns']['servers'] = [migrate_server(s) for s in cfg['dns']['servers']]
+cfg['dns']['servers'] = [s for s in (migrate_server(x) for x in cfg['dns']['servers']) if s]
+
+# fix dns rules referencing removed rcode/block server
+for rule in cfg['dns']['rules']:
+    if rule.get('server') == 'block':
+        rule.pop('server'); rule['action'] = 'reject'
 
 # 5b. Move dns.fakeip range config into the fakeip server entry, remove top-level dns.fakeip
 fakeip_cfg = cfg['dns'].pop('fakeip', {})
