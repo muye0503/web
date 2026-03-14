@@ -24,32 +24,32 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 load_dotenv()
-USERNAME = os.getenv("APP_USERNAME")
-if not USERNAME:
-    raise ValueError("APP_USERNAME 环境变量未设置")
 MONGO_URI = os.getenv("MONGO_URI")
 if not MONGO_URI:
     raise ValueError("MONGO_URI 环境变量未设置，格式：mongodb://用户名:密码@host:27017/")
 
-state = {"logged_in": False, "browser": None, "context": None, "user_info": None}
+# state["accounts"][username] = {"logged_in", "context", "user_info", "lock"}
+state = {"browser": None, "accounts": {}}
 
 _mongo_client = None
-_login_lock: asyncio.Lock | None = None
-
-
-def get_login_lock() -> asyncio.Lock:
-    global _login_lock
-    if _login_lock is None:
-        _login_lock = asyncio.Lock()
-    return _login_lock
 
 
 def get_mongo_db():
     global _mongo_client
     if _mongo_client is None:
         _mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        _mongo_client["runzhu"]["sessions"].create_index("username", unique=True)
+        db = _mongo_client["runzhu"]
+        db["accounts"].create_index("username", unique=True)
+        db["sessions"].create_index("username", unique=True)
     return _mongo_client["runzhu"]
+
+
+def get_all_active_accounts():
+    try:
+        return list(get_mongo_db()["accounts"].find({"active": True}, {"_id": 0}))
+    except Exception as e:
+        log.error(f"读取账号列表失败：{e}")
+        return []
 
 
 def load_session_from_mongo(username: str):
@@ -57,7 +57,7 @@ def load_session_from_mongo(username: str):
         doc = get_mongo_db()["sessions"].find_one({"username": username})
         return doc["session"] if doc else None
     except Exception as e:
-        log.error(f"MongoDB 读取失败：{e}")
+        log.error(f"MongoDB 读取 session 失败：{e}")
         return None
 
 
@@ -69,12 +69,27 @@ def save_session_to_mongo(username: str, session: dict):
             upsert=True
         )
     except Exception as e:
-        log.error(f"MongoDB 写入失败：{e}")
+        log.error(f"MongoDB 写入 session 失败：{e}")
 
 
-async def is_logged_in():
+def get_account_state(username: str) -> dict:
+    """获取或初始化账号状态"""
+    if username not in state["accounts"]:
+        state["accounts"][username] = {
+            "logged_in": False,
+            "context": None,
+            "user_info": None,
+            "lock": asyncio.Lock()
+        }
+    return state["accounts"][username]
+
+
+async def is_logged_in(username: str):
+    acc = get_account_state(username)
+    if not acc["context"]:
+        return False, None
     try:
-        page = await state["context"].new_page()
+        page = await acc["context"].new_page()
         try:
             await page.goto(
                 "https://register.ccopyright.com.cn/account.html?current=soft_register",
@@ -91,26 +106,42 @@ async def is_logged_in():
         finally:
             await page.close()
 
-        log.info(f"is_logged_in: url={current_url}, webUserInfo={'有' if raw else '无'}")
+        log.info(f"[{username}] is_logged_in: url={current_url}, webUserInfo={'有' if raw else '无'}")
         if "login" in current_url or not raw:
             return False, None
         return True, json.loads(raw)
     except Exception as e:
-        log.warning(f"is_logged_in异常：{e}")
+        log.warning(f"[{username}] is_logged_in异常：{e}")
         return False, None
 
 
-async def reload_context(session: dict) -> bool:
-    """用新 session 替换当前 context，返回登录状态"""
+async def reload_context(username: str, session: dict) -> bool:
+    """用新 session 替换账号的 context，返回登录状态"""
+    acc = get_account_state(username)
     new_context = await state["browser"].new_context(storage_state=session)
-    old_context = state["context"]
-    state["context"] = new_context
+    old_context = acc["context"]
+    acc["context"] = new_context
     if old_context:
         await old_context.close()
-    logged_in, user_info = await is_logged_in()
-    state["logged_in"] = logged_in
-    state["user_info"] = user_info
+    logged_in, user_info = await is_logged_in(username)
+    acc["logged_in"] = logged_in
+    acc["user_info"] = user_info
     return logged_in
+
+
+async def init_account(username: str):
+    """初始化单个账号的 context 和登录状态"""
+    session = load_session_from_mongo(username)
+    acc = get_account_state(username)
+    if session:
+        acc["context"] = await state["browser"].new_context(storage_state=session)
+        logged_in, user_info = await is_logged_in(username)
+        acc["logged_in"] = logged_in
+        acc["user_info"] = user_info
+        log.info(f"[{username}] 初始化完成，登录状态：{'已登录' if logged_in else '未登录'}")
+    else:
+        acc["context"] = await state["browser"].new_context()
+        log.warning(f"[{username}] 无 session，请先登录")
 
 
 async def keepalive_loop():
@@ -118,53 +149,58 @@ async def keepalive_loop():
         interval = random.randint(60, 300)
         log.info(f"下次保活间隔：{interval}秒")
         await asyncio.sleep(interval)
-        if not state["context"]:
-            continue
-        try:
-            page = await state["context"].new_page()
+
+        accounts = get_all_active_accounts()
+        for account in accounts:
+            username = account["username"]
+            acc = get_account_state(username)
+            if not acc["context"]:
+                continue
             try:
-                await page.goto(
-                    "https://register.ccopyright.com.cn/account.html?current=soft_register",
-                    timeout=60000, wait_until="domcontentloaded"
-                )
-                await page.wait_for_timeout(2000)
-                raw = await page.evaluate("localStorage.getItem('webUserInfo')")
-                if not raw:
-                    raise Exception("webUserInfo为空")
-                user_info = json.loads(raw)
-                token = user_info["authorization_token"]
-                key = user_info["authorization_key"]
-                user_id = user_info["id"]
+                page = await acc["context"].new_page()
+                try:
+                    await page.goto(
+                        "https://register.ccopyright.com.cn/account.html?current=soft_register",
+                        timeout=60000, wait_until="domcontentloaded"
+                    )
+                    await page.wait_for_timeout(2000)
+                    raw = await page.evaluate("localStorage.getItem('webUserInfo')")
+                    if not raw:
+                        raise Exception("webUserInfo为空")
+                    user_info = json.loads(raw)
+                    token = user_info["authorization_token"]
+                    key = user_info["authorization_key"]
+                    user_id = user_info["id"]
 
-                api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusSummary/{user_id}"
-                resp = await page.request.get(api, headers={
-                    "authorization": f"Bearer {token}",
-                    "authorization_key": key,
-                    "authorization_token": token,
-                    "device": "pc"
-                })
-                result = await resp.json()
-                if result.get("returnCode") != "SUCCESS":
-                    raise Exception(f"API返回：{result.get('msg')}")
-            finally:
-                await page.close()
+                    api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusSummary/{user_id}"
+                    resp = await page.request.get(api, headers={
+                        "authorization": f"Bearer {token}",
+                        "authorization_key": key,
+                        "authorization_token": token,
+                        "device": "pc"
+                    })
+                    result = await resp.json()
+                    if result.get("returnCode") != "SUCCESS":
+                        raise Exception(f"API返回：{result.get('msg')}")
+                finally:
+                    await page.close()
 
-            session = await state["context"].storage_state()
-            save_session_to_mongo(USERNAME, session)
-            state["user_info"] = user_info
-            state["logged_in"] = True
-            log.info("保活成功，session有效")
-        except Exception as e:
-            state["logged_in"] = False
-            state["user_info"] = None
-            log.warning(f"session已过期：{e}，尝试从 MongoDB 重新加载")
-            session = load_session_from_mongo(USERNAME)
-            if session:
-                await reload_context(session)
-                if state["logged_in"]:
-                    log.info("从 MongoDB 重新加载 session 成功")
-                else:
-                    log.warning("MongoDB 中的 session 也已过期，请重新运行 client_login.py")
+                session = await acc["context"].storage_state()
+                save_session_to_mongo(username, session)
+                acc["user_info"] = user_info
+                acc["logged_in"] = True
+                log.info(f"[{username}] 保活成功")
+            except Exception as e:
+                acc["logged_in"] = False
+                acc["user_info"] = None
+                log.warning(f"[{username}] session过期：{e}，尝试从 MongoDB 重新加载")
+                session = load_session_from_mongo(username)
+                if session:
+                    await reload_context(username, session)
+                    if acc["logged_in"]:
+                        log.info(f"[{username}] 从 MongoDB 重新加载 session 成功")
+                    else:
+                        log.warning(f"[{username}] MongoDB 中的 session 也已过期，请重新登录")
 
 
 @asynccontextmanager
@@ -172,20 +208,18 @@ async def lifespan(app: FastAPI):
     pw = await async_playwright().start()
     state["browser"] = await pw.chromium.launch(headless=True)
 
-    session = load_session_from_mongo(USERNAME)
-    if session:
-        state["context"] = await state["browser"].new_context(storage_state=session)
-        logged_in, user_info = await is_logged_in()
-        state["logged_in"] = logged_in
-        state["user_info"] = user_info
-        log.info(f"启动完成，登录状态：{'已登录' if logged_in else '未登录'}")
-    else:
-        state["context"] = await state["browser"].new_context()
-        log.warning("MongoDB 中无 session，请先在客户机运行 client_login.py")
+    accounts = get_all_active_accounts()
+    if not accounts:
+        log.warning("数据库中无账号，请通过 POST /accounts 添加账号")
+    for account in accounts:
+        await init_account(account["username"])
 
     task = asyncio.create_task(keepalive_loop())
     yield
     task.cancel()
+    for acc in state["accounts"].values():
+        if acc["context"]:
+            await acc["context"].close()
     await state["browser"].close()
     await pw.stop()
 
@@ -193,28 +227,58 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.get("/")
-async def index():
-    return FileResponse("index.html")
+# ── 账号管理 ──
+
+class AccountPayload(BaseModel):
+    username: str
 
 
-@app.get("/status")
-async def status():
-    return {"logged_in": state["logged_in"]}
-
-
-@app.post("/reload-session")
-async def reload_session():
-    """从 MongoDB 重新加载 session（客户机重新登录后调用）"""
+@app.post("/accounts")
+async def add_account(payload: AccountPayload):
+    """添加账号"""
     try:
-        session = load_session_from_mongo(USERNAME)
-        if not session:
-            return {"error": "MongoDB 中无 session，请先运行 client_login.py"}
-        logged_in = await reload_context(session)
-        return {"status": "ok", "logged_in": logged_in}
+        get_mongo_db()["accounts"].update_one(
+            {"username": payload.username},
+            {"$set": {"username": payload.username, "active": True}},
+            upsert=True
+        )
+        await init_account(payload.username)
+        return {"status": "ok", "username": payload.username}
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=str(e))
 
+
+@app.delete("/accounts/{username}")
+async def delete_account(username: str):
+    """删除账号"""
+    try:
+        get_mongo_db()["accounts"].update_one(
+            {"username": username}, {"$set": {"active": False}}
+        )
+        acc = state["accounts"].pop(username, None)
+        if acc and acc["context"]:
+            await acc["context"].close()
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/accounts")
+async def list_accounts():
+    """查看所有账号状态"""
+    accounts = get_all_active_accounts()
+    result = []
+    for account in accounts:
+        username = account["username"]
+        acc = state["accounts"].get(username, {})
+        result.append({
+            "username": username,
+            "logged_in": acc.get("logged_in", False)
+        })
+    return result
+
+
+# ── session 管理 ──
 
 class SessionPayload(BaseModel):
     username: str
@@ -226,34 +290,63 @@ async def upload_session(payload: SessionPayload):
     """接收客户机上传的 session"""
     try:
         save_session_to_mongo(payload.username, payload.session)
-        if payload.username == USERNAME:
-            await reload_context(payload.session)
-        return {"status": "ok"}
+        await reload_context(payload.username, payload.session)
+        return {"status": "ok", "logged_in": state["accounts"].get(payload.username, {}).get("logged_in", False)}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.post("/reload-session/{username}")
+async def reload_session(username: str):
+    """从 MongoDB 重新加载 session"""
+    try:
+        session = load_session_from_mongo(username)
+        if not session:
+            return {"error": "MongoDB 中无 session，请先登录"}
+        logged_in = await reload_context(username, session)
+        return {"status": "ok", "logged_in": logged_in}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+# ── 业务接口 ──
+
+@app.get("/")
+async def index():
+    return FileResponse("index.html")
+
+
+@app.get("/status")
+async def status(username: str):
+    acc = state["accounts"].get(username)
+    if not acc:
+        return {"username": username, "logged_in": False}
+    return {"username": username, "logged_in": acc["logged_in"]}
+
+
 @app.get("/query")
-async def query(status: str = "FILL", page_num: int = 1, page_size: int = 10):
-    """查询项目列表，status: ALL/FILL/AUDIT/ADMIT/MODIFY/DONE/DISTRIBUTE"""
-    if not state["user_info"]:
-        if not state["context"]:
-            return {"error": "未登录"}
-        async with get_login_lock():
-            if not state["user_info"]:
-                logged_in, user_info = await is_logged_in()
+async def query(username: str, status: str = "FILL", page_num: int = 1, page_size: int = 10):
+    """查询项目列表"""
+    acc = state["accounts"].get(username)
+    if not acc or not acc["context"]:
+        return {"error": f"账号 {username} 未登录"}
+
+    if not acc["user_info"]:
+        async with acc["lock"]:
+            if not acc["user_info"]:
+                logged_in, user_info = await is_logged_in(username)
                 if not logged_in:
                     return {"error": "session已过期，请重新登录"}
-                state["logged_in"] = True
-                state["user_info"] = user_info
+                acc["logged_in"] = True
+                acc["user_info"] = user_info
 
-    user_info = state["user_info"]
+    user_info = acc["user_info"]
     token = user_info["authorization_token"]
     key = user_info["authorization_key"]
     user_id = user_info["id"]
 
     api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusList/{user_id}"
-    page = await state["context"].new_page()
+    page = await acc["context"].new_page()
     try:
         response = await page.request.get(api, params={
             "keyWord": "", "applyDate": "ALL", "status": status,
@@ -267,7 +360,7 @@ async def query(status: str = "FILL", page_num: int = 1, page_size: int = 10):
         })
         data = await response.json()
     except Exception as e:
-        log.error(f"API 请求失败：{e}")
+        log.error(f"[{username}] API 请求失败：{e}")
         return {"error": "查询失败，请稍后重试"}
     finally:
         await page.close()

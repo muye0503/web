@@ -4,61 +4,79 @@
   <meta charset="UTF-8">
   <title>客户端登录管理</title>
   <style>
-    body { font-family: sans-serif; max-width: 500px; margin: 60px auto; padding: 0 20px; }
-    .card { border: 1px solid #ddd; border-radius: 8px; padding: 24px; }
-    .row { display: flex; justify-content: space-between; margin: 10px 0; }
-    .label { color: #666; }
-    .value { font-weight: bold; }
-    button { margin-top: 20px; width: 100%; padding: 10px; font-size: 16px; cursor: pointer; }
-    #message { margin-top: 16px; padding: 10px; background: #f5f5f5; border-radius: 4px; }
+    body { font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+    th { background: #f5f5f5; }
+    button { padding: 6px 14px; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #error { color: red; margin-top: 10px; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2 style="margin-top:0">登录管理</h2>
-    <div class="row">
-      <span class="label">账号</span>
-      <span class="value" id="username">-</span>
-    </div>
-    <div class="row">
-      <span class="label">服务端登录状态</span>
-      <span class="value" id="server_status">-</span>
-    </div>
-    <div id="message">加载中...</div>
-    <button id="btn" onclick="triggerLogin()">触发登录</button>
-  </div>
+  <h2>登录管理</h2>
+  <button onclick="loadAccounts()">刷新</button>
+  <div id="error"></div>
+  <table>
+    <thead>
+      <tr><th>账号</th><th>服务端状态</th><th>操作</th><th>消息</th></tr>
+    </thead>
+    <tbody id="tbody"></tbody>
+  </table>
 
   <script>
-    function updateUI(data) {
-      document.getElementById("username").textContent = data.username || "-";
-      document.getElementById("server_status").textContent =
-        data.server_logged_in === true ? "✅ 已登录" :
-        data.server_logged_in === false ? "❌ 未登录" : "无法连接服务端";
-      document.getElementById("message").textContent = data.message;
-      document.getElementById("btn").disabled = data.login_running;
-      document.getElementById("btn").textContent = data.login_running ? "登录中..." : "触发登录";
-    }
-
-    async function fetchStatus() {
-      const res = await fetch("/status");
+    async function loadAccounts() {
+      const res = await fetch("/accounts");
       const data = await res.json();
-      updateUI(data);
-      return data;
+      if (data.error) {
+        document.getElementById("error").textContent = data.error;
+        return;
+      }
+      document.getElementById("error").textContent = "";
+      const tbody = document.getElementById("tbody");
+      tbody.innerHTML = "";
+      for (const [i, acc] of data.entries()) {
+        const status =
+          acc.server_logged_in === true ? "✅ 已登录" :
+          acc.server_logged_in === false ? "❌ 未登录" : "⚠️ 无法连接";
+        const btnDisabled = acc.login_running ? "disabled" : "";
+        const btnText = acc.login_running ? "登录中..." : "触发登录";
+        tbody.innerHTML += `<tr id="row-${i}">
+          <td>${esc(acc.username)}</td>
+          <td>${status}</td>
+          <td><button ${btnDisabled} onclick="triggerLogin('${esc(acc.username)}', ${i})">${btnText}</button></td>
+          <td id="msg-${i}">${esc(acc.message)}</td>
+        </tr>`;
+      }
     }
 
-    async function triggerLogin() {
-      await fetch("/login", { method: "POST" });
-      pollStatus();
+    async function triggerLogin(username, idx) {
+      const btn = document.querySelector(`#row-${idx} button`);
+      btn.disabled = true;
+      btn.textContent = "登录中...";
+      await fetch(`/login/${encodeURIComponent(username)}`, { method: "POST" });
+      pollAccount(username, idx);
     }
 
-    function pollStatus() {
+    function pollAccount(username, idx) {
       const timer = setInterval(async () => {
-        const data = await fetchStatus();
-        if (!data.login_running) clearInterval(timer);
+        const res = await fetch("/accounts");
+        const data = await res.json();
+        const acc = data.find(a => a.username === username);
+        if (!acc) { clearInterval(timer); return; }
+        document.getElementById(`msg-${idx}`).textContent = acc.message;
+        if (!acc.login_running) {
+          clearInterval(timer);
+          loadAccounts();
+        }
       }, 2000);
     }
 
-    fetchStatus();
+    function esc(str) {
+      return String(str ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    }
+
+    loadAccounts();
   </script>
 </body>
 </html>

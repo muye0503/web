@@ -17,6 +17,8 @@
   <h2>版权注册管理</h2>
 
   <div>
+    <label>账号：</label>
+    <select id="username"></select>
     <button onclick="checkStatus()">检查登录状态</button>
     <button onclick="reloadSession()">重新加载 Session</button>
     <div id="status"></div>
@@ -39,26 +41,44 @@
   <script>
     const API = "";
 
+    async function loadAccounts() {
+      const res = await fetch(`${API}/accounts`);
+      const data = await res.json();
+      const sel = document.getElementById("username");
+      if (!data.length) {
+        sel.innerHTML = '<option value="">无可用账号</option>';
+        return;
+      }
+      sel.innerHTML = data.map(a => `<option value="${esc(a.username)}">${esc(a.username)}</option>`).join("");
+    }
+
+    function getUsername() {
+      return document.getElementById("username").value;
+    }
+
     async function checkStatus() {
-      const res = await fetch(`${API}/status`);
+      const username = getUsername();
+      const res = await fetch(`${API}/status?username=${encodeURIComponent(username)}`);
       const data = await res.json();
       document.getElementById("status").textContent =
         data.logged_in ? "✅ 已登录" : "❌ 未登录";
     }
 
     async function reloadSession() {
+      const username = getUsername();
       document.getElementById("status").textContent = "正在从 MongoDB 加载 session...";
-      const res = await fetch(`${API}/reload-session`, { method: "POST" });
+      const res = await fetch(`${API}/reload-session/${encodeURIComponent(username)}`, { method: "POST" });
       const data = await res.json();
       document.getElementById("status").textContent =
         data.logged_in ? "✅ 加载成功，已登录" : `❌ 加载失败：${data.error || "session 无效"}`;
     }
 
     async function queryList() {
+      const username = getUsername();
       const status = document.getElementById("queryStatus").value;
       const resultDiv = document.getElementById("result");
       resultDiv.textContent = "查询中...";
-      const res = await fetch(`${API}/query?status=${status}`);
+      const res = await fetch(`${API}/query?username=${encodeURIComponent(username)}&status=${status}`);
       const data = await res.json();
       if (data.error) {
         resultDiv.textContent = `❌ ${data.error}`;
@@ -83,6 +103,8 @@
     function esc(str) {
       return String(str ?? "-").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
+
+    loadAccounts();
   </script>
 </body>
 </html>
