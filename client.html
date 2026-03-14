@@ -21,8 +21,8 @@
       <span class="value" id="username">-</span>
     </div>
     <div class="row">
-      <span class="label">最后登录时间</span>
-      <span class="value" id="updated_at">-</span>
+      <span class="label">服务端登录状态</span>
+      <span class="value" id="server_status">-</span>
     </div>
     <div id="message">加载中...</div>
     <button id="btn" onclick="triggerLogin()">触发登录</button>
@@ -31,7 +31,9 @@
   <script>
     function updateUI(data) {
       document.getElementById("username").textContent = data.username || "-";
-      document.getElementById("updated_at").textContent = data.session_updated_at || "从未登录";
+      document.getElementById("server_status").textContent =
+        data.server_logged_in === true ? "✅ 已登录" :
+        data.server_logged_in === false ? "❌ 未登录" : "无法连接服务端";
       document.getElementById("message").textContent = data.message;
       document.getElementById("btn").disabled = data.login_running;
       document.getElementById("btn").textContent = data.login_running ? "登录中..." : "触发登录";

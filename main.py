@@ -5,8 +5,9 @@ if sys.platform == "win32":
 
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from pydantic import BaseModel
 from playwright.async_api import async_playwright
 from pymongo import MongoClient
 from datetime import datetime
@@ -26,7 +27,9 @@ load_dotenv()
 USERNAME = os.getenv("APP_USERNAME")
 if not USERNAME:
     raise ValueError("APP_USERNAME 环境变量未设置")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_URI = os.getenv("MONGO_URI")
+if not MONGO_URI:
+    raise ValueError("MONGO_URI 环境变量未设置，格式：mongodb://用户名:密码@host:27017/")
 
 state = {"logged_in": False, "browser": None, "context": None, "user_info": None}
 
@@ -144,21 +147,27 @@ async def keepalive_loop():
             log.warning(f"session已过期：{e}，尝试从 MongoDB 重新加载")
             session = load_session_from_mongo(USERNAME)
             if session:
-                new_context = await state["browser"].new_context(storage_state=session)
-                old_context = state["context"]
-                state["context"] = new_context
-                if old_context:
-                    await old_context.close()
-                logged_in, user_info = await is_logged_in()
-                state["logged_in"] = logged_in
-                state["user_info"] = user_info
-                if logged_in:
+                await reload_context(session)
+                if state["logged_in"]:
                     log.info("从 MongoDB 重新加载 session 成功")
                 else:
                     log.warning("MongoDB 中的 session 也已过期，请重新运行 client_login.py")
 
 
-@asynccontextmanager
+async def reload_context(session: dict) -> bool:
+    """用新 session 替换当前 context，返回登录状态"""
+    new_context = await state["browser"].new_context(storage_state=session)
+    old_context = state["context"]
+    state["context"] = new_context
+    if old_context:
+        await old_context.close()
+    logged_in, user_info = await is_logged_in()
+    state["logged_in"] = logged_in
+    state["user_info"] = user_info
+    return logged_in
+
+
+
 async def lifespan(app: FastAPI):
     pw = await async_playwright().start()
     state["browser"] = await pw.chromium.launch(headless=True)
@@ -201,17 +210,27 @@ async def reload_session():
         session = load_session_from_mongo(USERNAME)
         if not session:
             return {"error": "MongoDB 中无 session，请先运行 client_login.py"}
-        new_context = await state["browser"].new_context(storage_state=session)
-        old_context = state["context"]
-        state["context"] = new_context
-        if old_context:
-            await old_context.close()
-        logged_in, user_info = await is_logged_in()
-        state["logged_in"] = logged_in
-        state["user_info"] = user_info
+        logged_in = await reload_context(session)
         return {"status": "ok", "logged_in": logged_in}
     except Exception as e:
         return {"error": str(e)}
+
+
+class SessionPayload(BaseModel):
+    username: str
+    session: dict
+
+
+@app.post("/upload-session")
+async def upload_session(payload: SessionPayload):
+    """接收客户机上传的 session"""
+    try:
+        save_session_to_mongo(payload.username, payload.session)
+        if payload.username == USERNAME:
+            await reload_context(payload.session)
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/query")

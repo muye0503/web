@@ -1,39 +1,20 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
-from pymongo import MongoClient
 from playwright.async_api import async_playwright
-from datetime import datetime
 import asyncio
+import httpx
 import os
 
 app = FastAPI()
 
-MONGO_URI = os.getenv("MONGO_URI")
+SERVER_URL = os.getenv("SERVER_URL")  # 服务端地址，如 http://服务器IP:8000
 USERNAME = os.getenv("APP_USERNAME")
 PASSWORD = os.getenv("APP_PASSWORD")
 
-if not MONGO_URI or not USERNAME or not PASSWORD:
-    raise ValueError("MONGO_URI、APP_USERNAME、APP_PASSWORD 环境变量均需设置")
+if not SERVER_URL or not USERNAME or not PASSWORD:
+    raise ValueError("SERVER_URL、APP_USERNAME、APP_PASSWORD 环境变量均需设置")
 
 login_status = {"running": False, "message": "未登录"}
-
-# 修复3：MongoDB 单例
-_mongo_client = None
-
-def get_mongo_db():
-    global _mongo_client
-    if _mongo_client is None:
-        _mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-        _mongo_client["runzhu"]["sessions"].create_index("username", unique=True)
-    return _mongo_client["runzhu"]
-
-
-def _save_session(session: dict):
-    get_mongo_db()["sessions"].update_one(
-        {"username": USERNAME},
-        {"$set": {"session": session, "updated_at": datetime.now()}},
-        upsert=True
-    )
 
 
 async def do_login():
@@ -57,8 +38,14 @@ async def do_login():
             finally:
                 await browser.close()
 
-        # 修复2：同步 MongoDB 操作放到线程池，不阻塞事件循环
-        await asyncio.to_thread(_save_session, session)
+        # 上传 session 到服务端 API
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{SERVER_URL}/upload-session",
+                json={"username": USERNAME, "session": session},
+                timeout=30
+            )
+            resp.raise_for_status()
         login_status["message"] = f"✅ session 已上传：{USERNAME}"
     except Exception as e:
         login_status["message"] = f"❌ 登录失败：{e}"
@@ -73,14 +60,16 @@ async def index():
 
 @app.get("/status")
 async def status():
+    # 从服务端查询登录状态
     try:
-        doc = get_mongo_db()["sessions"].find_one({"username": USERNAME})
-        updated_at = doc["updated_at"].strftime("%Y-%m-%d %H:%M:%S") if doc else None
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(f"{SERVER_URL}/status", timeout=10)
+            server_status = resp.json()
     except Exception:
-        updated_at = None
+        server_status = {"logged_in": None}
     return {
         "username": USERNAME,
-        "session_updated_at": updated_at,
+        "server_logged_in": server_status.get("logged_in"),
         "login_running": login_status["running"],
         "message": login_status["message"]
     }

@@ -56,8 +56,14 @@
 
     async function queryList() {
       const status = document.getElementById("queryStatus").value;
+      const resultDiv = document.getElementById("result");
+      resultDiv.textContent = "查询中...";
       const res = await fetch(`${API}/query?status=${status}`);
       const data = await res.json();
+      if (data.error) {
+        resultDiv.textContent = `❌ ${data.error}`;
+        return;
+      }
       const list = data?.data?.list || [];
       const total = data?.data?.paging?.total || 0;
 
@@ -65,13 +71,17 @@
         <tr><th>软件名</th><th>申请人</th><th>状态</th></tr>`;
       for (const item of list) {
         html += `<tr>
-          <td>${item.softName || "-"}</td>
-          <td>${item.applyPeople || "-"}</td>
-          <td>${item.status || "-"}</td>
+          <td>${esc(item.softName)}</td>
+          <td>${esc(item.applyPeople)}</td>
+          <td>${esc(item.status)}</td>
         </tr>`;
       }
       html += "</table>";
-      document.getElementById("result").innerHTML = html;
+      resultDiv.innerHTML = html;
+    }
+
+    function esc(str) {
+      return String(str ?? "-").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
     }
   </script>
 </body>
