@@ -24,7 +24,8 @@ def get_mongo_db():
     global _mongo_client
     if _mongo_client is None:
         _mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
-    return _mongo_client["wraxl"]
+        _mongo_client["runzhu"]["sessions"].create_index("username", unique=True)
+    return _mongo_client["runzhu"]
 
 
 def _save_session(session: dict):
