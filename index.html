@@ -18,7 +18,7 @@
 
   <div>
     <button onclick="checkStatus()">检查登录状态</button>
-    <button onclick="doLogin()">触发登录</button>
+    <button onclick="reloadSession()">重新加载 Session</button>
     <div id="status"></div>
   </div>
 
@@ -46,11 +46,12 @@
         data.logged_in ? "✅ 已登录" : "❌ 未登录";
     }
 
-    async function doLogin() {
-      document.getElementById("status").textContent = "正在触发登录，请在弹出的浏览器中完成验证码...";
-      const res = await fetch(`${API}/login`, { method: "POST" });
+    async function reloadSession() {
+      document.getElementById("status").textContent = "正在从 MongoDB 加载 session...";
+      const res = await fetch(`${API}/reload-session`, { method: "POST" });
       const data = await res.json();
-      document.getElementById("status").textContent = data.message;
+      document.getElementById("status").textContent =
+        data.logged_in ? "✅ 加载成功，已登录" : `❌ 加载失败：${data.error || "session 无效"}`;
     }
 
     async function queryList() {
