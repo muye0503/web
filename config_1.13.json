@@ -1,6 +1,5 @@
 {
   "log": {
-    "disabled": false,
     "level": "info",
     "timestamp": true
   },
@@ -9,8 +8,8 @@
       {
         "type": "tls",
         "tag": "dns_proxy",
-        "server": "1.1.1.1",
-        "domain_resolver": "dns_resolver"
+        "domain_resolver": "dns_resolver",
+        "server": "1.1.1.1"
       },
       {
         "type": "h3",
@@ -32,9 +31,7 @@
     ],
     "rules": [
       {
-        "rule_set": [
-          "geosite-category-ads-all"
-        ],
+        "rule_set": "geosite-category-ads-all",
         "action": "reject"
       },
       {
@@ -42,16 +39,12 @@
           "A",
           "AAAA"
         ],
-        "server": "dns_fakeip",
-        "rule_set": [
-          "geosite-geolocation-!cn"
-        ]
+        "rule_set": "geosite-geolocation-!cn",
+        "server": "dns_fakeip"
       },
       {
-        "server": "dns_proxy",
-        "rule_set": [
-          "geosite-geolocation-!cn"
-        ]
+        "rule_set": "geosite-geolocation-!cn",
+        "server": "dns_proxy"
       }
     ],
     "final": "dns_direct",
@@ -59,9 +52,9 @@
   },
   "ntp": {
     "enabled": true,
+    "interval": "30m0s",
     "server": "time.apple.com",
     "server_port": 123,
-    "interval": "30m",
     "detour": "DIRECT"
   },
   "inbounds": [
@@ -74,12 +67,10 @@
     {
       "type": "tun",
       "tag": "tun-in",
+      "address": "172.19.0.1/30",
       "auto_route": true,
       "strict_route": true,
-      "stack": "mixed",
-      "address": [
-        "172.19.0.1/30"
-      ]
+      "stack": "mixed"
     }
   ],
   "outbounds": [
@@ -93,7 +84,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1101,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -102,7 +92,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1101,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -111,7 +100,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1102,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -120,7 +108,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1103,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -129,7 +116,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1104,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -138,7 +124,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1105,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -147,7 +132,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1106,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -156,7 +140,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1111,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -165,7 +148,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1112,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -174,7 +156,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1113,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -183,7 +164,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1114,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -192,7 +172,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1115,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -201,7 +180,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1116,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -210,7 +188,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1121,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -219,7 +196,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1122,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -228,7 +204,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1123,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -237,7 +212,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1131,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -246,7 +220,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1132,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -255,7 +228,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1133,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -264,7 +236,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1134,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -273,7 +244,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1135,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -282,7 +252,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1141,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -291,7 +260,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1142,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -300,7 +268,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1143,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -309,7 +276,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1144,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -318,7 +284,6 @@
       "server": "cm1.xxxlsop.com",
       "server_port": 1145,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -327,7 +292,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1201,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -336,7 +300,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1226,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -345,7 +308,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1202,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -354,7 +316,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1204,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -363,7 +324,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1151,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -372,7 +332,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1152,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -381,7 +340,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1153,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -390,7 +348,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1205,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -399,7 +356,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1206,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -408,7 +364,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1207,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -417,7 +372,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1208,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -426,7 +380,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1209,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -435,7 +388,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1210,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -444,7 +396,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1211,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -453,7 +404,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1212,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -462,7 +412,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1222,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -471,7 +420,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1223,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -480,7 +428,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1224,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -489,7 +436,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1225,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -498,7 +444,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1213,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -507,7 +452,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1214,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -516,7 +460,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1215,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -525,7 +468,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1216,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -534,7 +476,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1217,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -543,7 +484,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1218,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -552,7 +492,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1219,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -561,7 +500,6 @@
       "server": "cm.xxxlsop.com",
       "server_port": 1220,
       "uuid": "206a349e-e59b-49f9-9ca7-d7f37131146a",
-      "alter_id": 0,
       "security": "auto"
     },
     {
@@ -684,7 +622,7 @@
         "VIP印尼"
       ],
       "url": "http://www.gstatic.com/generate_204",
-      "interval": "5m"
+      "interval": "5m0s"
     },
     {
       "type": "selector",
@@ -1187,9 +1125,7 @@
         "outbound": "DIRECT"
       },
       {
-        "domain_suffix": [
-          "local"
-        ],
+        "domain_suffix": "local",
         "ip_cidr": [
           "192.168.0.0/16",
           "10.0.0.0/8",
@@ -1200,10 +1136,6 @@
         "outbound": "🎯 全球直连"
       },
       {
-        "domain_keyword": [
-          "1drv",
-          "microsoft"
-        ],
         "domain_suffix": [
           "aadrm.com",
           "acompli.com",
@@ -1279,6 +1211,10 @@
           "yammer.com",
           "yammerusercontent.com",
           "bingapis.com"
+        ],
+        "domain_keyword": [
+          "1drv",
+          "microsoft"
         ],
         "outbound": "Ⓜ️ 微软服务"
       },
@@ -9967,6 +9903,7 @@
         "outbound": "🛑 全球拦截"
       },
       {
+        "domain": "geo2.adobe.com",
         "domain_suffix": [
           "17gouwuba.com",
           "186078.com",
@@ -10198,9 +10135,6 @@
           "222.73.156.235/32",
           "114.119.160.0/21"
         ],
-        "domain": [
-          "geo2.adobe.com"
-        ],
         "outbound": "🛑 全球拦截"
       },
       {
@@ -10244,6 +10178,69 @@
         "outbound": "🎥 NETFLIX"
       },
       {
+        "domain": [
+          "radio.itunes.apple.com",
+          "tv.applemusic.com",
+          "atv-ps.amazon.com",
+          "fls-na.amazon.com",
+          "avodmp4s3ww-a.akamaihd.net",
+          "d25xi40x97liuc.cloudfront.net",
+          "dmqdd6hw24ucf.cloudfront.net",
+          "dmqdd6hw24ucf.cloudfront.net",
+          "d22qjgkvxw22r6.cloudfront.net",
+          "d1v5ir2lpwr8os.cloudfront.net",
+          "d27xxe7juh1us6.cloudfront.net",
+          "linear.tv.apple.com",
+          "play-edge.itunes.apple.com",
+          "uts-api.itunes.apple.com",
+          "gamer-cds.cdn.hinet.net",
+          "gamer2-cds.cdn.hinet.net",
+          "apm-misaka.biliapi.net",
+          "p.bstarstatic.com",
+          "p-bstarstatic.akamaized.net",
+          "upos-bstar-mirrorakam.akamaized.net",
+          "upos-bstar1-mirrorakam.akamaized.net",
+          "d151l6v8er5bdm.cloudfront.net",
+          "cdn.registerdisney.go.com",
+          "edge.api.brightcove.com",
+          "bcbolt446c5271-a.akamaihd.net",
+          "44wilhpljf.execute-api.ap-southeast-1.amazonaws.com",
+          "bcbolthboa-a.akamaihd.net",
+          "cf-images.ap-southeast-1.prod.boltdns.net",
+          "dai3fd1oh325y.cloudfront.net",
+          "hboasia1-i.akamaihd.net",
+          "hboasia2-i.akamaihd.net",
+          "hboasia3-i.akamaihd.net",
+          "hboasia4-i.akamaihd.net",
+          "hboasia5-i.akamaihd.net",
+          "hboasialive.akamaized.net",
+          "hbogoprod-vod.akamaized.net",
+          "hbolb.onwardsmg.com",
+          "hbounify-prod.evergent.com",
+          "players.brightcove.net",
+          "s3-ap-southeast-1.amazonaws.com",
+          "itvpnpmobile-a.akamaihd.net",
+          "intl.iqiyi.com",
+          "intl-rcd.iqiyi.com",
+          "intl-subscription.iqiyi.com",
+          "kktv-theater.kk.stream",
+          "d3c7rimkq79yfu.cloudfront.net",
+          "litvfreemobile-hichannel.cdn.hinet.net",
+          "mobileso.bz.mgtv.com",
+          "d349g9zuie06uo.cloudfront.net",
+          "cbsi.live.ott.irdeto.com",
+          "cbsplaylistserver.aws.syncbak.com",
+          "cbsservice.aws.syncbak.com",
+          "link.theplatform.com",
+          "hamifans.emome.net",
+          "edge.api.brightcove.com",
+          "api.viu.now.com",
+          "d1k2us671qcoau.cloudfront.net",
+          "d2anahhhmp1ffz.cloudfront.net",
+          "dfp6rglgjqszk.cloudfront.net",
+          "youtubei.googleapis.com",
+          "yt3.ggpht.com"
+        ],
         "domain_suffix": [
           "jtvnw.net",
           "ttvnw.net",
@@ -10380,69 +10377,6 @@
           "youtube.com",
           "ytimg.com"
         ],
-        "domain": [
-          "radio.itunes.apple.com",
-          "tv.applemusic.com",
-          "atv-ps.amazon.com",
-          "fls-na.amazon.com",
-          "avodmp4s3ww-a.akamaihd.net",
-          "d25xi40x97liuc.cloudfront.net",
-          "dmqdd6hw24ucf.cloudfront.net",
-          "dmqdd6hw24ucf.cloudfront.net",
-          "d22qjgkvxw22r6.cloudfront.net",
-          "d1v5ir2lpwr8os.cloudfront.net",
-          "d27xxe7juh1us6.cloudfront.net",
-          "linear.tv.apple.com",
-          "play-edge.itunes.apple.com",
-          "uts-api.itunes.apple.com",
-          "gamer-cds.cdn.hinet.net",
-          "gamer2-cds.cdn.hinet.net",
-          "apm-misaka.biliapi.net",
-          "p.bstarstatic.com",
-          "p-bstarstatic.akamaized.net",
-          "upos-bstar-mirrorakam.akamaized.net",
-          "upos-bstar1-mirrorakam.akamaized.net",
-          "d151l6v8er5bdm.cloudfront.net",
-          "cdn.registerdisney.go.com",
-          "edge.api.brightcove.com",
-          "bcbolt446c5271-a.akamaihd.net",
-          "44wilhpljf.execute-api.ap-southeast-1.amazonaws.com",
-          "bcbolthboa-a.akamaihd.net",
-          "cf-images.ap-southeast-1.prod.boltdns.net",
-          "dai3fd1oh325y.cloudfront.net",
-          "hboasia1-i.akamaihd.net",
-          "hboasia2-i.akamaihd.net",
-          "hboasia3-i.akamaihd.net",
-          "hboasia4-i.akamaihd.net",
-          "hboasia5-i.akamaihd.net",
-          "hboasialive.akamaized.net",
-          "hbogoprod-vod.akamaized.net",
-          "hbolb.onwardsmg.com",
-          "hbounify-prod.evergent.com",
-          "players.brightcove.net",
-          "s3-ap-southeast-1.amazonaws.com",
-          "itvpnpmobile-a.akamaihd.net",
-          "intl.iqiyi.com",
-          "intl-rcd.iqiyi.com",
-          "intl-subscription.iqiyi.com",
-          "kktv-theater.kk.stream",
-          "d3c7rimkq79yfu.cloudfront.net",
-          "litvfreemobile-hichannel.cdn.hinet.net",
-          "mobileso.bz.mgtv.com",
-          "d349g9zuie06uo.cloudfront.net",
-          "cbsi.live.ott.irdeto.com",
-          "cbsplaylistserver.aws.syncbak.com",
-          "cbsservice.aws.syncbak.com",
-          "link.theplatform.com",
-          "hamifans.emome.net",
-          "edge.api.brightcove.com",
-          "api.viu.now.com",
-          "d1k2us671qcoau.cloudfront.net",
-          "d2anahhhmp1ffz.cloudfront.net",
-          "dfp6rglgjqszk.cloudfront.net",
-          "youtubei.googleapis.com",
-          "yt3.ggpht.com"
-        ],
         "domain_keyword": [
           "jooxweb-api",
           "spotify.com",
@@ -10490,6 +10424,10 @@
         "outbound": "🌍 国外媒体"
       },
       {
+        "domain": [
+          "upos-hz-mirrorakam.akamaized.net",
+          "apiintl.biliapi.net"
+        ],
         "domain_suffix": [
           "acg.tv",
           "acgvideo.com",
@@ -10500,10 +10438,6 @@
           "biliapi.com",
           "bilivideo.com",
           "hdslb.com"
-        ],
-        "domain": [
-          "upos-hz-mirrorakam.akamaized.net",
-          "apiintl.biliapi.net"
         ],
         "outbound": "🌏 国内媒体"
       },
@@ -10531,9 +10465,7 @@
         "outbound": "🌏 国内媒体"
       },
       {
-        "domain_suffix": [
-          "api.mob.app.letv.com"
-        ],
+        "domain_suffix": "api.mob.app.letv.com",
         "outbound": "🌏 国内媒体"
       },
       {
@@ -10574,6 +10506,48 @@
         "outbound": "📲 电报信息"
       },
       {
+        "domain": [
+          "d3c33hcgiwev3.cloudfront.net",
+          "payments-jp.amazon.com",
+          "s3-ap-northeast-1.amazonaws.com",
+          "s3-ap-southeast-2.amazonaws.com",
+          "a248.e.akamai.net",
+          "a771.dscq.akamai.net",
+          "testflight.apple.com",
+          "clubhouse.pubnubapi.com",
+          "assets1.xboxlive.com",
+          "assets2.xboxlive.com",
+          "az416426.vo.msecnd.net",
+          "az668014.vo.msecnd.net",
+          "cc.tvbs.com.tw",
+          "ocsp.int-x3.letsencrypt.org",
+          "us.weibo.com",
+          "books.itunes.apple.com",
+          "beta.music.apple.com",
+          "lookup-api.apple.com",
+          "apps.apple.com",
+          "books.apple.com",
+          "itunes.apple.com",
+          "tv.apple.com",
+          "amp-api.podcasts.apple.com",
+          "bookkeeper.itunes.apple.com",
+          "gateway.icloud.com",
+          "news-assets.apple.com",
+          "news-client.apple.com",
+          "news-client-search.apple.com",
+          "news-edge.apple.com",
+          "news-events.apple.com",
+          "apple.comscoreresearch.com",
+          "appleid.apple.com",
+          "developer.apple.com",
+          "www.icloud.com",
+          "ocsp.apple.com",
+          "cacerts.digicert.com",
+          "crl3.digicert.com",
+          "crl4.digicert.com",
+          "ocsp.digicert.com",
+          "international-gfe.download.nvidia.com"
+        ],
         "domain_suffix": [
           "amazon.co.jp",
           "clubhouseapi.com",
@@ -11096,48 +11070,6 @@
           "s3.amazonaws.com",
           "zaobao.com.sg"
         ],
-        "domain": [
-          "d3c33hcgiwev3.cloudfront.net",
-          "payments-jp.amazon.com",
-          "s3-ap-northeast-1.amazonaws.com",
-          "s3-ap-southeast-2.amazonaws.com",
-          "a248.e.akamai.net",
-          "a771.dscq.akamai.net",
-          "testflight.apple.com",
-          "clubhouse.pubnubapi.com",
-          "assets1.xboxlive.com",
-          "assets2.xboxlive.com",
-          "az416426.vo.msecnd.net",
-          "az668014.vo.msecnd.net",
-          "cc.tvbs.com.tw",
-          "ocsp.int-x3.letsencrypt.org",
-          "us.weibo.com",
-          "books.itunes.apple.com",
-          "beta.music.apple.com",
-          "lookup-api.apple.com",
-          "apps.apple.com",
-          "books.apple.com",
-          "itunes.apple.com",
-          "tv.apple.com",
-          "amp-api.podcasts.apple.com",
-          "bookkeeper.itunes.apple.com",
-          "gateway.icloud.com",
-          "news-assets.apple.com",
-          "news-client.apple.com",
-          "news-client-search.apple.com",
-          "news-edge.apple.com",
-          "news-events.apple.com",
-          "apple.comscoreresearch.com",
-          "appleid.apple.com",
-          "developer.apple.com",
-          "www.icloud.com",
-          "ocsp.apple.com",
-          "cacerts.digicert.com",
-          "crl3.digicert.com",
-          "crl4.digicert.com",
-          "ocsp.digicert.com",
-          "international-gfe.download.nvidia.com"
-        ],
         "domain_keyword": [
           "google",
           ".blogspot.",
@@ -11192,6 +11124,19 @@
         "outbound": "🍎 苹果服务"
       },
       {
+        "domain": [
+          "outlook.office365.com",
+          "smtp.office365.com",
+          "download.microsoft.com",
+          "wustat.windows.com",
+          "ntservicepack.microsoft.com",
+          "file-igamecj.akamaized.net",
+          "ip.istatmenus.app",
+          "sms.imagetasks.com",
+          "speedtest.macpaw.com",
+          "download.jetbrains.com",
+          "images-cn.ssl-images-amazon.com"
+        ],
         "domain_suffix": [
           "qhres.com",
           "qhimg.com",
@@ -11490,19 +11435,6 @@
           "zhimg.com",
           "zhuihd.com"
         ],
-        "domain": [
-          "outlook.office365.com",
-          "smtp.office365.com",
-          "download.microsoft.com",
-          "wustat.windows.com",
-          "ntservicepack.microsoft.com",
-          "file-igamecj.akamaized.net",
-          "ip.istatmenus.app",
-          "sms.imagetasks.com",
-          "speedtest.macpaw.com",
-          "download.jetbrains.com",
-          "images-cn.ssl-images-amazon.com"
-        ],
         "ip_cidr": [
           "182.254.116.0/24",
           "203.205.254.0/23"
@@ -11510,6 +11442,13 @@
         "outbound": "🎯 全球直连"
       },
       {
+        "domain_keyword": [
+          "aria2",
+          "xunlei",
+          "yunpan",
+          "thunder",
+          "xlliveud"
+        ],
         "process_name": [
           "aria2c",
           "fdm",
@@ -11523,47 +11462,35 @@
           "downloadservice",
           "weiyun"
         ],
-        "domain_keyword": [
-          "aria2",
-          "xunlei",
-          "yunpan",
-          "thunder",
-          "xlliveud"
-        ],
         "outbound": "🎯 全球直连"
       },
       {
-        "outbound": "🎯 全球直连",
-        "rule_set": [
-          "geoip-cn"
-        ]
+        "rule_set": "geoip-cn",
+        "outbound": "🎯 全球直连"
       }
     ],
-    "auto_detect_interface": true,
-    "final": "🐟 漏网之鱼",
     "rule_set": [
       {
-        "tag": "geoip-cn",
         "type": "remote",
-        "format": "binary",
+        "tag": "geoip-cn",
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geoip/rule-set/geoip-cn.srs",
         "download_detour": "🔰 节点选择"
       },
       {
-        "tag": "geosite-category-ads-all",
         "type": "remote",
-        "format": "binary",
+        "tag": "geosite-category-ads-all",
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-category-ads-all.srs",
         "download_detour": "🔰 节点选择"
       },
       {
-        "tag": "geosite-geolocation-!cn",
         "type": "remote",
-        "format": "binary",
+        "tag": "geosite-geolocation-!cn",
         "url": "https://raw.githubusercontent.com/SagerNet/sing-geosite/rule-set/geosite-geolocation-!cn.srs",
         "download_detour": "🔰 节点选择"
       }
     ],
+    "final": "🐟 漏网之鱼",
+    "auto_detect_interface": true,
     "default_domain_resolver": "dns_resolver"
   },
   "experimental": {
