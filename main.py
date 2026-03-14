@@ -100,6 +100,19 @@ async def is_logged_in():
         return False, None
 
 
+async def reload_context(session: dict) -> bool:
+    """用新 session 替换当前 context，返回登录状态"""
+    new_context = await state["browser"].new_context(storage_state=session)
+    old_context = state["context"]
+    state["context"] = new_context
+    if old_context:
+        await old_context.close()
+    logged_in, user_info = await is_logged_in()
+    state["logged_in"] = logged_in
+    state["user_info"] = user_info
+    return logged_in
+
+
 async def keepalive_loop():
     while True:
         interval = random.randint(60, 300)
@@ -154,20 +167,7 @@ async def keepalive_loop():
                     log.warning("MongoDB 中的 session 也已过期，请重新运行 client_login.py")
 
 
-async def reload_context(session: dict) -> bool:
-    """用新 session 替换当前 context，返回登录状态"""
-    new_context = await state["browser"].new_context(storage_state=session)
-    old_context = state["context"]
-    state["context"] = new_context
-    if old_context:
-        await old_context.close()
-    logged_in, user_info = await is_logged_in()
-    state["logged_in"] = logged_in
-    state["user_info"] = user_info
-    return logged_in
-
-
-
+@asynccontextmanager
 async def lifespan(app: FastAPI):
     pw = await async_playwright().start()
     state["browser"] = await pw.chromium.launch(headless=True)
