@@ -154,7 +154,7 @@ async def init_account(username: str):
 
 async def keepalive_loop():
     while True:
-        interval = random.randint(60, 300)
+        interval = random.randint(300, 600)
         log.info(f"下次保活间隔：{interval}秒")
         await asyncio.sleep(interval)
 
