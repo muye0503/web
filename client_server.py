@@ -21,7 +21,12 @@ def load_accounts() -> list[dict]:
     """从 CSV 读取账号列表，格式：username,password"""
     if not os.path.exists(ACCOUNTS_FILE):
         raise FileNotFoundError(f"账号文件不存在：{ACCOUNTS_FILE}")
-    with open(ACCOUNTS_FILE, newline="", encoding="utf-8") as f:
+    with open(ACCOUNTS_FILE, newline="", encoding="utf-8-sig") as f:
+        try:
+            return list(csv.DictReader(f))
+        except UnicodeDecodeError:
+            pass
+    with open(ACCOUNTS_FILE, newline="", encoding="gbk") as f:
         return list(csv.DictReader(f))
 
 
