@@ -1,11 +1,13 @@
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from playwright.async_api import async_playwright
+from dotenv import load_dotenv
 import asyncio
 import httpx
 import csv
 import os
 
+load_dotenv()
 app = FastAPI()
 
 SERVER_URL = os.getenv("SERVER_URL")
@@ -113,3 +115,7 @@ async def login(username: str):
         return {"error": "登录已在进行中"}
     asyncio.create_task(do_login(username, acc["password"]))
     return {"message": f"登录已触发：{username}"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=5001)
