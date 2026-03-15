@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 from playwright.async_api import async_playwright
@@ -8,13 +9,24 @@ import csv
 import os
 
 load_dotenv()
-app = FastAPI()
 
 SERVER_URL = os.getenv("SERVER_URL")
 ACCOUNTS_FILE = os.getenv("ACCOUNTS_FILE", "accounts.csv")
 
 if not SERVER_URL:
     raise ValueError("SERVER_URL 环境变量未设置")
+
+_login_task_handles: dict[str, asyncio.Task] = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    yield
+    for task in _login_task_handles.values():
+        task.cancel()
+
+
+app = FastAPI(lifespan=lifespan)
 
 
 def load_accounts() -> list[dict]:
@@ -70,6 +82,9 @@ async def do_login(username: str, password: str, account_type: str = "个人用�
             )
             resp.raise_for_status()
         login_tasks[username]["message"] = f"✅ session 已上传：{username}"
+    except asyncio.CancelledError:
+        login_tasks[username]["message"] = "已取消"
+        raise
     except Exception as e:
         login_tasks[username]["message"] = f"❌ 登录失败：{e}"
     finally:
@@ -119,7 +134,7 @@ async def login(username: str):
     task = login_tasks.get(username, {})
     if task.get("running"):
         return {"error": "登录已在进行中"}
-    asyncio.create_task(do_login(username, acc["password"], acc.get("account_type", "个人用户")))
+    _login_task_handles[username] = asyncio.create_task(do_login(username, acc["password"], acc.get("account_type", "个人用户")))
     return {"message": f"登录已触发：{username}"}
 
 if __name__ == "__main__":
