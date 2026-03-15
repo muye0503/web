@@ -29,10 +29,7 @@ async def capture_apis():
 
         def on_request(request):
             if "gateway.ccopyright.com.cn" in request.url:
-                captured.append({
-                    "url": request.url,
-                    "method": request.method,
-                })
+                captured.append({"url": request.url, "method": request.method})
 
         async def on_response(response):
             if "gateway.ccopyright.com.cn" in response.url:
@@ -44,8 +41,17 @@ async def capture_apis():
                 if body:
                     print(json.dumps(body, ensure_ascii=False, indent=2)[:500])
 
-        page.on("request", on_request)
-        page.on("response", lambda r: asyncio.create_task(on_response(r)))
+        def setup_page_listeners(p):
+            p.on("request", on_request)
+            p.on("response", lambda r: asyncio.create_task(on_response(r)))
+
+        # 监听新弹出的页面
+        def on_page(p):
+            print(f"新页面打开：{p.url}")
+            setup_page_listeners(p)
+
+        context.on("page", on_page)
+        setup_page_listeners(page)
 
         await page.goto("https://register.ccopyright.com.cn/account.html?current=soft_register")
 
