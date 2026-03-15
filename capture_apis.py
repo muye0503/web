@@ -1,12 +1,28 @@
 import asyncio
 import json
+import os
 from playwright.async_api import async_playwright
+
+STORAGE_FILE = "storage_state.json"
+
+
+async def login_and_save():
+    async with async_playwright() as pw:
+        browser = await pw.chromium.launch(headless=False)
+        context = await browser.new_context()
+        page = await context.new_page()
+        await page.goto("https://register.ccopyright.com.cn/login.html")
+        print("请手动完成登录，完成后按 Enter...")
+        await asyncio.get_event_loop().run_in_executor(None, input)
+        await context.storage_state(path=STORAGE_FILE)
+        await browser.close()
+        print(f"session 已保存到 {STORAGE_FILE}")
 
 
 async def capture_apis():
     async with async_playwright() as pw:
         browser = await pw.chromium.launch(headless=False)
-        context = await browser.new_context(storage_state="storage_state.json")
+        context = await browser.new_context(storage_state=STORAGE_FILE)
         page = await context.new_page()
 
         captured = []
@@ -29,7 +45,7 @@ async def capture_apis():
                     print(json.dumps(body, ensure_ascii=False, indent=2)[:500])
 
         page.on("request", on_request)
-        page.on("response", on_response)
+        page.on("response", lambda r: asyncio.create_task(on_response(r)))
 
         await page.goto("https://register.ccopyright.com.cn/account.html?current=soft_register")
 
@@ -43,4 +59,11 @@ async def capture_apis():
         await browser.close()
 
 
-asyncio.run(capture_apis())
+async def main():
+    if not os.path.exists(STORAGE_FILE):
+        print("未找到 storage_state.json，先进行登录...")
+        await login_and_save()
+    await capture_apis()
+
+
+asyncio.run(main())
