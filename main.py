@@ -111,13 +111,31 @@ async def is_logged_in(username: str):
                 pass
             current_url = page.url
             raw = await page.evaluate("localStorage.getItem('webUserInfo')")
+
+            if "login" in current_url or not raw:
+                return False, None
+
+            user_info = json.loads(raw)
+            token = user_info["authorization_token"]
+            key = user_info["authorization_key"]
+            user_id = user_info["id"]
+
+            # 用真实 API 验证 token 是否有效
+            api = f"https://gateway.ccopyright.com.cn/registerQuerySoftServer/userCenter/statusSummary/{user_id}"
+            resp = await page.request.get(api, headers={
+                "authorization": f"Bearer {token}",
+                "authorization_key": key,
+                "authorization_token": token,
+                "device": "pc"
+            })
+            result = await resp.json()
+            log.info(f"[{username}] is_logged_in: url={current_url}, API returnCode={result.get('returnCode')}")
+            if result.get("returnCode") != "SUCCESS":
+                return False, None
+            return True, user_info
         finally:
             await page.close()
 
-        log.info(f"[{username}] is_logged_in: url={current_url}, webUserInfo={'有' if raw else '无'}")
-        if "login" in current_url or not raw:
-            return False, None
-        return True, json.loads(raw)
     except Exception as e:
         log.warning(f"[{username}] is_logged_in异常：{e}")
         return False, None
