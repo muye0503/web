@@ -35,7 +35,7 @@ def get_account(username: str) -> dict | None:
 login_tasks: dict[str, dict] = {}  # username -> {running, message}
 
 
-async def do_login(username: str, password: str):
+async def do_login(username: str, password: str, account_type: str = "个人用户"):
     login_tasks[username] = {"running": True, "message": "正在打开登录页..."}
     try:
         async with async_playwright() as pw:
@@ -45,6 +45,8 @@ async def do_login(username: str, password: str):
                 page = await context.new_page()
                 await page.goto("https://register.ccopyright.com.cn/login.html")
                 await page.wait_for_selector('input[type="text"]')
+                # 选择账号类型
+                await page.get_by_text(account_type, exact=True).click()
                 login_tasks[username]["message"] = "正在填写账号密码..."
                 await page.fill('input[type="text"]', username)
                 await page.fill('input[type="password"]', password)
@@ -112,7 +114,7 @@ async def login(username: str):
     task = login_tasks.get(username, {})
     if task.get("running"):
         return {"error": "登录已在进行中"}
-    asyncio.create_task(do_login(username, acc["password"]))
+    asyncio.create_task(do_login(username, acc["password"], acc.get("account_type", "个人用户")))
     return {"message": f"登录已触发：{username}"}
 
 if __name__ == "__main__":
