@@ -44,7 +44,7 @@ async def do_login(username: str, password: str):
                 context = await browser.new_context()
                 page = await context.new_page()
                 await page.goto("https://register.ccopyright.com.cn/login.html")
-                await page.wait_for_load_state("networkidle")
+                await page.wait_for_selector('input[type="text"]')
                 login_tasks[username]["message"] = "正在填写账号密码..."
                 await page.fill('input[type="text"]', username)
                 await page.fill('input[type="password"]', password)
@@ -84,21 +84,20 @@ async def list_accounts():
 
     result = []
     async with httpx.AsyncClient() as client:
-        tasks = [
-            client.get(f"{SERVER_URL}/status?username={acc['username']}", timeout=5)
-            for acc in accounts
-        ]
-        responses = await asyncio.gather(*tasks, return_exceptions=True)
-        for acc, resp in zip(accounts, responses):
+        try:
+            resp = await client.get(f"{SERVER_URL}/accounts", timeout=5)
+            server_accounts = {a["username"]: a for a in resp.json()}
+        except Exception:
+            server_accounts = {}
+
+        for acc in accounts:
             username = acc["username"]
-            try:
-                server_status = resp.json() if not isinstance(resp, Exception) else {"logged_in": None}
-            except Exception:
-                server_status = {"logged_in": None}
+            server = server_accounts.get(username, {})
             task = login_tasks.get(username, {})
             result.append({
                 "username": username,
-                "server_logged_in": server_status.get("logged_in"),
+                "server_logged_in": server.get("logged_in"),
+                "session_updated_at": server.get("session_updated_at"),
                 "login_running": task.get("running", False),
                 "message": task.get("message", "")
             })
