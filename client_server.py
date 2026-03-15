@@ -90,7 +90,7 @@ async def list_accounts():
         return {"error": str(e)}
 
     result = []
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(verify=False) as client:
         try:
             resp = await client.get(f"{SERVER_URL}/accounts", timeout=5)
             server_accounts = {a["username"]: a for a in resp.json()}
