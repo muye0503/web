@@ -62,7 +62,7 @@ async def do_login(username: str, password: str, account_type: str = "个人用�
             finally:
                 await browser.close()
 
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(verify=False) as client:
             resp = await client.post(
                 f"{SERVER_URL}/upload-session",
                 json={"username": username, "session": session},
