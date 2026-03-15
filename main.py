@@ -24,9 +24,11 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 load_dotenv()
-MONGO_URI = os.getenv("MONGO_URI")
-if not MONGO_URI:
-    raise ValueError("MONGO_URI 环境变量未设置，格式：mongodb://用户名:密码@host:27017/")
+MONGO_HOST = os.getenv("MONGO_HOST", "localhost:27017")
+MONGO_USER = os.getenv("MONGO_USER")
+MONGO_PASS = os.getenv("MONGO_PASS")
+if not MONGO_USER or not MONGO_PASS:
+    raise ValueError("MONGO_USER 和 MONGO_PASS 环境变量未设置")
 
 # state["accounts"][username] = {"logged_in", "context", "user_info", "lock"}
 state = {"browser": None, "accounts": {}}
@@ -37,7 +39,13 @@ _mongo_client = None
 def get_mongo_db():
     global _mongo_client
     if _mongo_client is None:
-        _mongo_client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+        _mongo_client = MongoClient(
+            host=MONGO_HOST,
+            username=MONGO_USER,
+            password=MONGO_PASS,
+            authSource="admin",
+            serverSelectionTimeoutMS=5000
+        )
         db = _mongo_client["runzhu"]
         db["accounts"].create_index("username", unique=True)
         db["sessions"].create_index("username", unique=True)
