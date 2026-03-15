@@ -275,13 +275,23 @@ async def delete_account(username: str):
 async def list_accounts():
     """查看所有账号状态"""
     accounts = get_all_active_accounts()
+    usernames = [a["username"] for a in accounts]
+    session_docs = {
+        d["username"]: d for d in get_mongo_db()["sessions"].find(
+            {"username": {"$in": usernames}},
+            {"username": 1, "updated_at": 1, "_id": 0}
+        )
+    }
     result = []
     for account in accounts:
         username = account["username"]
         acc = state["accounts"].get(username, {})
+        doc = session_docs.get(username)
+        updated_at = doc["updated_at"].strftime("%Y-%m-%d %H:%M:%S") if doc and doc.get("updated_at") else None
         result.append({
             "username": username,
-            "logged_in": acc.get("logged_in", False)
+            "logged_in": acc.get("logged_in", False),
+            "session_updated_at": updated_at
         })
     return result
 
@@ -298,6 +308,12 @@ async def upload_session(payload: SessionPayload):
     """接收客户机上传的 session"""
     try:
         save_session_to_mongo(payload.username, payload.session)
+        # 自动同步 accounts 记录
+        get_mongo_db()["accounts"].update_one(
+            {"username": payload.username},
+            {"$setOnInsert": {"username": payload.username, "active": True}},
+            upsert=True
+        )
         await reload_context(payload.username, payload.session)
         return {"status": "ok", "logged_in": state["accounts"].get(payload.username, {}).get("logged_in", False)}
     except Exception as e:

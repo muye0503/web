@@ -19,7 +19,7 @@
   <div id="error"></div>
   <table>
     <thead>
-      <tr><th>账号</th><th>服务端状态</th><th>操作</th><th>消息</th></tr>
+      <tr><th>账号</th><th>服务端状态</th><th>上传时间</th><th>操作</th><th>消息</th></tr>
     </thead>
     <tbody id="tbody"></tbody>
   </table>
@@ -44,6 +44,7 @@
         tbody.innerHTML += `<tr id="row-${i}">
           <td>${esc(acc.username)}</td>
           <td>${status}</td>
+          <td>${esc(acc.session_updated_at || "-")}</td>
           <td><button ${btnDisabled} onclick="triggerLogin('${esc(acc.username)}', ${i})">${btnText}</button></td>
           <td id="msg-${i}">${esc(acc.message)}</td>
         </tr>`;
